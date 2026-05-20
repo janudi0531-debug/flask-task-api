@@ -1,0 +1,17 @@
+version: '3.8'
+ 
+services:
+  app-staging:
+    image: flask-task-api:latest
+    container_name: flask-staging
+    ports:
+      - '5001:5000'
+    environment:
+      - FLASK_ENV=staging
+    networks:
+      - devops-net
+    restart: unless-stopped
+ 
+networks:
+  devops-net:
+    external: true
