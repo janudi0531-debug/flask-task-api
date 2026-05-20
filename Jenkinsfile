@@ -25,65 +25,65 @@ pipeline {
         }
 
         // ── STAGE 2: TEST ───────────────────────────────────────────
-	stage('Test') {
-	    steps {
-	        echo '=== Running Tests with Coverage ==='
-	        sh '''
-	            /var/jenkins_home/venv/bin/pip install -r requirements.txt --quiet
-	            /var/jenkins_home/venv/bin/python -m pytest tests/ \
-	                --cov=app \
-	                --cov-report=xml:coverage.xml \
-	                --cov-report=term-missing \
-	                --junitxml=test-results.xml \
-	                -v
-	        '''
-	    }
-	    post {
-	        always {
-	            junit 'test-results.xml'
-	        }
-	        failure {
-	            error 'Tests failed — pipeline stopped.'
-	        }
-	    }
-	}
+        stage('Test') {
+            steps {
+                echo '=== Running Tests with Coverage ==='
+                sh '''
+                    /var/jenkins_home/venv/bin/pip install -r requirements.txt --quiet
+                    /var/jenkins_home/venv/bin/python -m pytest tests/ \
+                        --cov=app \
+                        --cov-report=xml:coverage.xml \
+                        --cov-report=term-missing \
+                        --junitxml=test-results.xml \
+                        -v
+                '''
+            }
+            post {
+                always {
+                    junit 'test-results.xml'
+                }
+                failure {
+                    error 'Tests failed — pipeline stopped.'
+                }
+            }
+        }
 
         // ── STAGE 3: CODE QUALITY ────────────────────────────────────
-	stage('Code Quality') {
-	    steps {
-	        echo '=== Running SonarQube Analysis ==='
-	        withSonarQubeEnv('SonarQube') {
-	            script {
-	                def scannerHome = tool 'SonarQube Scanner'
-	                sh "${scannerHome}/bin/sonar-scanner"
-	            }
-	        }
-	    }
-	    post {
-	        always {
-	            script {
-	                def qg = waitForQualityGate()
-	                if (qg.status != 'OK') {
-	                    error "Quality Gate failed: ${qg.status}"
-	                }
-	            }
-	        }
-	    }
-	}
+        stage('Code Quality') {
+            steps {
+                echo '=== Running SonarQube Analysis ==='
+                withSonarQubeEnv('SonarQube') {
+                    script {
+                        def scannerHome = tool 'SonarQube Scanner'
+                        sh "${scannerHome}/bin/sonar-scanner"
+                    }
+                }
+            }
+            post {
+                always {
+                    script {
+                        def qg = waitForQualityGate()
+                        if (qg.status != 'OK') {
+                            error "Quality Gate failed: ${qg.status}"
+                        }
+                    }
+                }
+            }
+        }
 
         // ── STAGE 4: SECURITY ────────────────────────────────────────
         stage('Security') {
             steps {
                 echo '=== Running Security Scans ==='
                 sh '''
-		    /var/jenkins_home/venv/bin/pip install bandit safety --quiet
-		    echo '--- Bandit (Python code scan) ---'
-		    /var/jenkins_home/venv/bin/bandit -r app/ -f json -o bandit-report.json -ll || true
-		    /var/jenkins_home/venv/bin/bandit -r app/ -ll || true
-		    echo '--- Safety (dependency CVE scan) ---'
-		    /var/jenkins_home/venv/bin/safety check --json > safety-report.json || true
-		    /var/jenkins_home/venv/bin/safety check || true
-		'''
+                    /var/jenkins_home/venv/bin/pip install bandit safety --quiet
+                    echo '--- Bandit (Python code scan) ---'
+                    /var/jenkins_home/venv/bin/bandit -r app/ -f json -o bandit-report.json -ll || true
+                    /var/jenkins_home/venv/bin/bandit -r app/ -ll || true
+                    echo '--- Safety (dependency CVE scan) ---'
+                    /var/jenkins_home/venv/bin/safety check --json > safety-report.json || true
+                    /var/jenkins_home/venv/bin/safety check || true
+                '''
             }
             post {
                 always {
@@ -94,28 +94,28 @@ pipeline {
         }
 
         // ── STAGE 5: DEPLOY (STAGING) ────────────────────────────────
-	stage('Deploy - Staging') {
-	    steps {
-	        echo '=== Deploying to Staging ==='
-	        sh '''
-	            docker stop flask-staging || true
-	            docker rm flask-staging || true
+        stage('Deploy - Staging') {
+            steps {
+                echo '=== Deploying to Staging ==='
+                sh '''
+                    docker stop flask-staging || true
+                    docker rm flask-staging || true
 
-	            docker-compose -f docker-compose.yml up -d
-	
-	            echo 'Waiting for staging to start...'
-	            sleep 8
+                    docker-compose -f docker-compose.yml up -d
 
-	            STATUS=$(docker inspect --format="{{.State.Running}}" flask-staging 2>/dev/null)
-	            echo "Staging container running: $STATUS"
-	            if [ "$STATUS" != "true" ]; then
-	                echo 'STAGING CONTAINER FAILED TO START'
-	                exit 1
-	            fi
-	            echo 'Staging is healthy!'
-	        '''
-	    }
-	}
+                    echo 'Waiting for staging to start...'
+                    sleep 8
+
+                    STATUS=$(docker inspect --format="{{.State.Running}}" flask-staging 2>/dev/null)
+                    echo "Staging container running: $STATUS"
+                    if [ "$STATUS" != "true" ]; then
+                        echo 'STAGING CONTAINER FAILED TO START'
+                        exit 1
+                    fi
+                    echo 'Staging is healthy!'
+                '''
+            }
+        }
 
         // ── STAGE 6: RELEASE ─────────────────────────────────────────
         stage('Release') {
@@ -154,29 +154,31 @@ pipeline {
         }
 
         // ── STAGE 7: MONITORING ──────────────────────────────────────
-	stage('Monitoring') {
-	    steps {
-	        echo '=== Starting Monitoring Stack ==='
-	        sh '''
-	            docker stop prometheus grafana || true
-	            docker rm prometheus grafana || true
+        stage('Monitoring') {
+            steps {
+                echo '=== Starting Monitoring Stack ==='
+                sh '''
+                    docker stop prometheus grafana || true
+                    docker rm prometheus grafana || true
 
-	            docker-compose -f docker-compose.prod.yml up -d prometheus grafana
+                    docker-compose -f docker-compose.prod.yml up -d prometheus grafana
 
-	            sleep 10
+                    sleep 10
 
-	            PROM=$(docker inspect --format="{{.State.Running}}" prometheus 2>/dev/null)
-	            echo "Prometheus running: $PROM"
+                    PROM=$(docker inspect --format="{{.State.Running}}" prometheus 2>/dev/null)
+                    echo "Prometheus running: $PROM"
 
-	            GRAF=$(docker inspect --format="{{.State.Running}}" grafana 2>/dev/null)
-	            echo "Grafana running: $GRAF"
+                    GRAF=$(docker inspect --format="{{.State.Running}}" grafana 2>/dev/null)
+                    echo "Grafana running: $GRAF"
 
-	            echo 'Monitoring stack is running.'
-	            echo 'Grafana: http://localhost:3000 (admin/admin)'
-	            echo 'Prometheus: http://localhost:9090'
-	        '''
-	    }
-	}
+                    echo 'Monitoring stack is running.'
+                    echo 'Grafana: http://localhost:3000 (admin/admin)'
+                    echo 'Prometheus: http://localhost:9090'
+                '''
+            }
+        }
+
+    }
 
     post {
         success {
