@@ -72,26 +72,26 @@ pipeline {
         }
 
         // ── STAGE 4: SECURITY ────────────────────────────────────────
-        stage('Security') {
-            steps {
-                echo '=== Running Security Scans ==='
-                sh '''
-                    /var/jenkins_home/venv/bin/pip install bandit safety --quiet
-                    echo '--- Bandit (Python code scan) ---'
-                    /var/jenkins_home/venv/bin/bandit -r app/ -f json -o bandit-report.json -ll || true
-                    /var/jenkins_home/venv/bin/bandit -r app/ -ll || true
-                    echo '--- Safety (dependency CVE scan) ---'
-                    /var/jenkins_home/venv/bin/safety check --json > safety-report.json || true
-                    /var/jenkins_home/venv/bin/safety check || true
-                '''
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: 'bandit-report.json, safety-report.json',
-                                     allowEmptyArchive: true
-                }
-            }
-        }
+	stage('Security') {
+	    steps {
+	        echo '=== Running Security Scans ==='
+	        sh '''
+	            /var/jenkins_home/venv/bin/pip install bandit pip-audit --quiet
+	            echo '--- Bandit (Python code scan) ---'
+	            /var/jenkins_home/venv/bin/bandit -r app/ -f json -o bandit-report.json -ll || true
+	            /var/jenkins_home/venv/bin/bandit -r app/ -ll || true
+	            echo '--- pip-audit (dependency CVE scan) ---'
+	            /var/jenkins_home/venv/bin/pip-audit > pip-audit-report.txt 2>&1 || true
+	            cat pip-audit-report.txt
+	        '''
+	    }
+	    post {
+	        always {
+	            archiveArtifacts artifacts: 'bandit-report.json, pip-audit-report.txt',
+	                             allowEmptyArchive: true
+	        }
+	    }
+	}
 
         // ── STAGE 5: DEPLOY (STAGING) ────────────────────────────────
         stage('Deploy - Staging') {
