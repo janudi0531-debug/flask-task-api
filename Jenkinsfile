@@ -29,8 +29,8 @@ pipeline {
 	    steps {
 	        echo '=== Running Tests with Coverage ==='
 	        sh '''
-	            pip3 install -r requirements.txt --quiet
-	            python3 -m pytest tests/ \
+	            /var/jenkins_home/venv/bin/pip install -r requirements.txt --quiet
+	            /var/jenkins_home/venv/bin/python -m pytest tests/ \
 	                --cov=app \
 	                --cov-report=xml:coverage.xml \
 	                --cov-report=term-missing \
@@ -73,14 +73,14 @@ pipeline {
             steps {
                 echo '=== Running Security Scans ==='
                 sh '''
-                    pip3 install bandit safety --quiet
-                    echo '--- Bandit (Python code scan) ---'
-                    bandit -r app/ -f json -o bandit-report.json -ll || true
-                    bandit -r app/ -ll || true
-                    echo '--- Safety (dependency CVE scan) ---'
-                    safety check --json > safety-report.json || true
-                    safety check || true
-                '''
+		    /var/jenkins_home/venv/bin/pip install bandit safety --quiet
+		    echo '--- Bandit (Python code scan) ---'
+		    /var/jenkins_home/venv/bin/bandit -r app/ -f json -o bandit-report.json -ll || true
+		    /var/jenkins_home/venv/bin/bandit -r app/ -ll || true
+		    echo '--- Safety (dependency CVE scan) ---'
+		    /var/jenkins_home/venv/bin/safety check --json > safety-report.json || true
+		    /var/jenkins_home/venv/bin/safety check || true
+		'''
             }
             post {
                 always {
