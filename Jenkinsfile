@@ -25,28 +25,28 @@ pipeline {
         }
 
         // ── STAGE 2: TEST ───────────────────────────────────────────
-        stage('Test') {
-            steps {
-                echo '=== Running Tests with Coverage ==='
-                sh '''
-                    pip install -r requirements.txt --quiet
-                    pytest tests/ \
-                        --cov=app \
-                        --cov-report=xml:coverage.xml \
-                        --cov-report=term-missing \
-                        --junitxml=test-results.xml \
-                        -v
-                '''
-            }
-            post {
-                always {
-                    junit 'test-results.xml'
-                }
-                failure {
-                    error 'Tests failed — pipeline stopped.'
-                }
-            }
-        }
+	stage('Test') {
+	    steps {
+	        echo '=== Running Tests with Coverage ==='
+	        sh '''
+	            pip3 install -r requirements.txt --quiet
+	            python3 -m pytest tests/ \
+	                --cov=app \
+	                --cov-report=xml:coverage.xml \
+	                --cov-report=term-missing \
+	                --junitxml=test-results.xml \
+	                -v
+	        '''
+	    }
+	    post {
+	        always {
+	            junit 'test-results.xml'
+	        }
+	        failure {
+	            error 'Tests failed — pipeline stopped.'
+	        }
+	    }
+	}
 
         // ── STAGE 3: CODE QUALITY ────────────────────────────────────
         stage('Code Quality') {
@@ -73,7 +73,7 @@ pipeline {
             steps {
                 echo '=== Running Security Scans ==='
                 sh '''
-                    pip install bandit safety --quiet
+                    pip3 install bandit safety --quiet
                     echo '--- Bandit (Python code scan) ---'
                     bandit -r app/ -f json -o bandit-report.json -ll || true
                     bandit -r app/ -ll || true
