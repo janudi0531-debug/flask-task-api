@@ -13,12 +13,12 @@ services:
     restart: unless-stopped
  
   prometheus:
-    image: prom/prometheus:latest
+    build:
+      context: .
+      dockerfile: prometheus.Dockerfile
     container_name: prometheus
     ports:
       - '9090:9090'
-    volumes:
-      - /var/jenkins_home/prometheus.yml:/etc/prometheus/prometheus.yml
     networks:
       - devops-net
     restart: unless-stopped
