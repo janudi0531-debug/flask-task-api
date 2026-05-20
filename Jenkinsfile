@@ -154,28 +154,29 @@ pipeline {
         }
 
         // ── STAGE 7: MONITORING ──────────────────────────────────────
-        stage('Monitoring') {
-            steps {
-                echo '=== Starting Monitoring Stack ==='
-                sh '''
-                    docker-compose -f docker-compose.prod.yml up -d prometheus grafana
+	stage('Monitoring') {
+	    steps {
+	        echo '=== Starting Monitoring Stack ==='
+	        sh '''
+	            docker stop prometheus grafana || true
+	            docker rm prometheus grafana || true
 
-                    sleep 10
+	            docker-compose -f docker-compose.prod.yml up -d prometheus grafana
 
-                    PROM=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:9090/-/ready)
-                    echo "Prometheus status: $PROM"
+	            sleep 10
 
-                    GRAF=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/api/health)
-                    echo "Grafana status: $GRAF"
+	            PROM=$(docker inspect --format="{{.State.Running}}" prometheus 2>/dev/null)
+	            echo "Prometheus running: $PROM"
 
-                    echo 'Monitoring stack is running.'
-                    echo 'Grafana: http://localhost:3000 (admin/admin)'
-                    echo 'Prometheus: http://localhost:9090'
-                '''
-            }
-        }
+	            GRAF=$(docker inspect --format="{{.State.Running}}" grafana 2>/dev/null)
+	            echo "Grafana running: $GRAF"
 
-    }
+	            echo 'Monitoring stack is running.'
+	            echo 'Grafana: http://localhost:3000 (admin/admin)'
+	            echo 'Prometheus: http://localhost:9090'
+	        '''
+	    }
+	}
 
     post {
         success {
