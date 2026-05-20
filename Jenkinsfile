@@ -49,24 +49,27 @@ pipeline {
 	}
 
         // ── STAGE 3: CODE QUALITY ────────────────────────────────────
-        stage('Code Quality') {
-            steps {
-                echo '=== Running SonarQube Analysis ==='
-                withSonarQubeEnv('SonarQube') {
-                    sh 'sonar-scanner'
-                }
-            }
-            post {
-                always {
-                    script {
-                        def qg = waitForQualityGate()
-                        if (qg.status != 'OK') {
-                            error "Quality Gate failed: ${qg.status}"
-                        }
-                    }
-                }
-            }
-        }
+	stage('Code Quality') {
+	    steps {
+	        echo '=== Running SonarQube Analysis ==='
+	        withSonarQubeEnv('SonarQube') {
+	            script {
+	                def scannerHome = tool 'SonarQube Scanner'
+	                sh "${scannerHome}/bin/sonar-scanner"
+	            }
+	        }
+	    }
+	    post {
+	        always {
+	            script {
+	                def qg = waitForQualityGate()
+	                if (qg.status != 'OK') {
+	                    error "Quality Gate failed: ${qg.status}"
+	                }
+	            }
+	        }
+	    }
+	}
 
         // ── STAGE 4: SECURITY ────────────────────────────────────────
         stage('Security') {
