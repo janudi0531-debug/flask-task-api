@@ -101,7 +101,7 @@ pipeline {
                     docker stop flask-staging || true
                     docker rm flask-staging || true
 
-                    docker compose -f docker-compose.yml up -d
+                    docker-compose -f docker-compose.yml up -d
 
                     echo 'Waiting for staging to start...'
                     sleep 8
@@ -133,7 +133,7 @@ pipeline {
 
                         docker stop flask-prod || true
                         docker rm flask-prod || true
-                        docker compose -f docker-compose.prod.yml up -d app-prod
+                        docker-compose -f docker-compose.prod.yml up -d app-prod
 
                         echo 'Production deployment complete'
                     """
@@ -158,7 +158,7 @@ pipeline {
             steps {
                 echo '=== Starting Monitoring Stack ==='
                 sh '''
-                    docker compose -f docker-compose.prod.yml up -d prometheus grafana
+                    docker-compose -f docker-compose.prod.yml up -d prometheus grafana
 
                     sleep 10
 
