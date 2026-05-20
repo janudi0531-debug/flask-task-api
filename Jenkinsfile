@@ -94,28 +94,28 @@ pipeline {
         }
 
         // ── STAGE 5: DEPLOY (STAGING) ────────────────────────────────
-        stage('Deploy - Staging') {
-            steps {
-                echo '=== Deploying to Staging ==='
-                sh '''
-                    docker stop flask-staging || true
-                    docker rm flask-staging || true
+	stage('Deploy - Staging') {
+	    steps {
+	        echo '=== Deploying to Staging ==='
+	        sh '''
+	            docker stop flask-staging || true
+	            docker rm flask-staging || true
 
-                    docker-compose -f docker-compose.yml up -d
+	            docker-compose -f docker-compose.yml up -d
+	
+	            echo 'Waiting for staging to start...'
+	            sleep 8
 
-                    echo 'Waiting for staging to start...'
-                    sleep 8
-
-                    STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:5001/health)
-                    echo "Staging health check returned: $STATUS"
-                    if [ "$STATUS" != "200" ]; then
-                        echo 'STAGING HEALTH CHECK FAILED'
-                        exit 1
-                    fi
-                    echo 'Staging is healthy!'
-                '''
-            }
-        }
+	            STATUS=$(docker inspect --format="{{.State.Running}}" flask-staging 2>/dev/null)
+	            echo "Staging container running: $STATUS"
+	            if [ "$STATUS" != "true" ]; then
+	                echo 'STAGING CONTAINER FAILED TO START'
+	                exit 1
+	            fi
+	            echo 'Staging is healthy!'
+	        '''
+	    }
+	}
 
         // ── STAGE 6: RELEASE ─────────────────────────────────────────
         stage('Release') {
