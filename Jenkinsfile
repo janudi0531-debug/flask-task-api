@@ -9,6 +9,7 @@ pipeline {
     }
 
     stages {
+	// PIPELINE STAGES
 
         // ── STAGE 1: BUILD ──────────────────────────────────────────
         stage('Build') {
