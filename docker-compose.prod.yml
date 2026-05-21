@@ -1,5 +1,5 @@
 version: '3.8'
- 
+
 services:
   app-prod:
     image: flask-task-api:latest
@@ -11,7 +11,7 @@ services:
     networks:
       - devops-net
     restart: unless-stopped
- 
+
   prometheus:
     build:
       context: .
@@ -22,7 +22,7 @@ services:
     networks:
       - devops-net
     restart: unless-stopped
- 
+
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
@@ -30,10 +30,15 @@ services:
       - '3000:3000'
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
     networks:
       - devops-net
     restart: unless-stopped
- 
+
+volumes:
+  grafana_data:
+
 networks:
   devops-net:
     external: true
