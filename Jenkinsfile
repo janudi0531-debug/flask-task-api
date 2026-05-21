@@ -10,7 +10,7 @@ pipeline {
 
     stages {
 
-        // ── STAGE 1: BUILD ──────────────────────────────────────────
+        // ── STAGE 1: BUILD ─────────────────────────────────────────
         stage('Build') {
             steps {
                 echo '=== Building Docker Image ==='
