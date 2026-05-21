@@ -9,7 +9,6 @@ pipeline {
     }
 
     stages {
-	// PIPELINE STAGES
 
         // ── STAGE 1: BUILD ──────────────────────────────────────────
         stage('Build') {
@@ -73,26 +72,26 @@ pipeline {
         }
 
         // ── STAGE 4: SECURITY ────────────────────────────────────────
-	stage('Security') {
-	    steps {
-	        echo '=== Running Security Scans ==='
-	        sh '''
-	            /var/jenkins_home/venv/bin/pip install bandit pip-audit --quiet
-	            echo '--- Bandit (Python code scan) ---'
-	            /var/jenkins_home/venv/bin/bandit -r app/ -f json -o bandit-report.json -ll || true
-	            /var/jenkins_home/venv/bin/bandit -r app/ -ll || true
-	            echo '--- pip-audit (dependency CVE scan) ---'
-	            /var/jenkins_home/venv/bin/pip-audit > pip-audit-report.txt 2>&1 || true
-	            cat pip-audit-report.txt
-	        '''
-	    }
-	    post {
-	        always {
-	            archiveArtifacts artifacts: 'bandit-report.json, pip-audit-report.txt',
-	                             allowEmptyArchive: true
-	        }
-	    }
-	}
+        stage('Security') {
+            steps {
+                echo '=== Running Security Scans ==='
+                sh '''
+                    /var/jenkins_home/venv/bin/pip install bandit safety --quiet
+                    echo '--- Bandit (Python code scan) ---'
+                    /var/jenkins_home/venv/bin/bandit -r app/ -f json -o bandit-report.json -ll || true
+                    /var/jenkins_home/venv/bin/bandit -r app/ -ll || true
+                    echo '--- Safety (dependency CVE scan) ---'
+                    /var/jenkins_home/venv/bin/safety check --json > safety-report.json || true
+                    /var/jenkins_home/venv/bin/safety check || true
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'bandit-report.json, safety-report.json',
+                                     allowEmptyArchive: true
+                }
+            }
+        }
 
         // ── STAGE 5: DEPLOY (STAGING) ────────────────────────────────
         stage('Deploy - Staging') {
@@ -154,38 +153,43 @@ pipeline {
             }
         }
 
+        // ── STAGE 7: MONITORING ──────────────────────────────────────
         stage('Monitoring') {
-	    steps {
-	        echo '=== Starting Monitoring Stack ==='
-	        sh '''
-	            # Only start if not already running
-	            if [ "$(docker inspect --format="{{.State.Running}}" prometheus 2>/dev/null)" != "true" ]; then
-	                docker stop prometheus || true
-	                docker rm prometheus || true
-	                docker-compose -f docker-compose.prod.yml up -d prometheus
-	            else
-                echo "Prometheus already running — skipping restart"
-	            fi
+            steps {
+                echo '=== Starting Monitoring Stack ==='
+                sh '''
+                    docker stop prometheus grafana || true
+                    docker rm prometheus grafana || true
 
-	            if [ "$(docker inspect --format="{{.State.Running}}" grafana 2>/dev/null)" != "true" ]; then
-	                docker stop grafana || true
-	                docker rm grafana || true
-	                docker-compose -f docker-compose.prod.yml up -d grafana
-	            else
-	                echo "Grafana already running — skipping restart"
-	            fi
+                    docker-compose -f docker-compose.prod.yml up -d prometheus grafana
 
-	            sleep 5
+                    sleep 10
 
-	            PROM=$(docker inspect --format="{{.State.Running}}" prometheus 2>/dev/null)
-	            echo "Prometheus running: $PROM"
+                    PROM=$(docker inspect --format="{{.State.Running}}" prometheus 2>/dev/null)
+                    echo "Prometheus running: $PROM"
 
-	            GRAF=$(docker inspect --format="{{.State.Running}}" grafana 2>/dev/null)
-	            echo "Grafana running: $GRAF"
+                    GRAF=$(docker inspect --format="{{.State.Running}}" grafana 2>/dev/null)
+                    echo "Grafana running: $GRAF"
 
-	            echo "Grafana: http://localhost:3000"
-	            echo "Prometheus: http://localhost:9090"
-	        '''
-	    }
-	}
+                    echo 'Monitoring stack is running.'
+                    echo 'Grafana: http://localhost:3000 (admin/admin)'
+                    echo 'Prometheus: http://localhost:9090'
+                '''
+            }
+        }
+
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline FAILED. Check stage logs above.'
+        }
+        always {
+            echo "Build ${BUILD_NUMBER} finished with status: ${currentBuild.result}"
+        }
+    }
+
 }
